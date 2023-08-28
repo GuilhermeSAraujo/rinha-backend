@@ -1,27 +1,28 @@
+using Newtonsoft.Json.Serialization;
 using Npgsql;
+using RinhaDeBackend.Data;
 using RinhaDeBackend.Models;
-using RinhaDeBackend.UseCases.CriarPessoa;
+using RinhaDeBackend.Services;
 using System.Collections.Concurrent;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+//Enable CORS
+builder.Services.AddCors(c =>
+{
+    c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var DB_CONNECTION_STRING = "Host=localhost;Username=postgres;Password=admin;Database=postgres";
+builder.Services.AddScoped<IPessoaService, PessoaService>();
 
-builder.Services.AddNpgsqlDataSource(
-        DB_CONNECTION_STRING ??
-        "ERRO de connection string!!!");
-
-var connection = new NpgsqlConnection(DB_CONNECTION_STRING);
-
-builder.Services.AddSingleton(connection);
-builder.Services.AddSingleton<ICriarPessoa, CriarPessoa>();
+builder.Services.AddDbContext<DataContext>();
 
 var app = builder.Build();
 
