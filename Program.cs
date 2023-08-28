@@ -6,7 +6,6 @@ using RinhaDeBackend.Services;
 using System.Collections.Concurrent;
 
 var builder = WebApplication.CreateBuilder(args);
-
 // Add services to the container.
 
 //Enable CORS
@@ -37,7 +36,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-
+    
 app.MapControllers();
 
 app.Run();

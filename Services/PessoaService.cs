@@ -18,6 +18,12 @@ namespace RinhaDeBackend.Services
             return await _context.Pessoa.FindAsync(id);
         }
 
+        public async Task<IEnumerable<Pessoa>> BuscarTermo(string termo)
+        {
+            var termos = await _context.Pessoa.ToListAsync();
+            return termos.Where(p => !string.IsNullOrEmpty(p.Stacks) && p.Stacks.Contains(termo));
+        }
+
         public async Task<Pessoa> CriarPessoa(CriarPessoaRequest pessoa)
         {
             var p = await _context.Pessoa.AddAsync(CriarPessoaRequest.ParsePessoa(pessoa));
