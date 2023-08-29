@@ -1,14 +1,52 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RinhaDeBackend.Models
+namespace RinhaDeBackend
 {
+
+
+    public class Pessoa
+    {
+        public Guid? Id { get; set; }
+
+        public string? Apelido { get; set; }
+
+        public string? Nome { get; set; }
+
+        public DateOnly? Nascimento { get; set; }
+
+        public IEnumerable<string>? Stack { get; set; }
+
+        internal static bool BasicamenteValida(Pessoa pessoa)
+        {
+            var atributosInvalidos = !pessoa.Nascimento.HasValue
+                                    || string.IsNullOrEmpty(pessoa.Nome)
+                                    || pessoa.Nome.Length > 100
+                                    || string.IsNullOrEmpty(pessoa.Apelido)
+                                    || pessoa.Apelido.Length > 32;
+
+            if (atributosInvalidos)
+                return false;
+
+            foreach (var item in pessoa.Stack ?? Enumerable.Empty<string>())
+                if (item.Length > 32 || item.Length == 0)
+                    return false;
+
+            return true;
+        }
+
+        internal static bool PossuiValoresInvalidos(Pessoa pessoa)
+        {
+            return pessoa.Nome.Any(char.IsDigit) || pessoa.Apelido.Any(char.IsDigit);
+        }
+    }
+
     public abstract class Response
     {
         public string? Erro { get; set; }
     }
 
     public class ResponseBusca
-    : Response
+        : Response
     {
         public const string RespostaErroString = "{\"Resultados\":[],\"Erro\":\"\\u0027t\\u0027 n\\uFFFDo informado\"}";
         public IEnumerable<Pessoa> Resultados { get; set; } = new List<Pessoa>();
