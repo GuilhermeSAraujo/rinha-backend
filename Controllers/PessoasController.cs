@@ -15,16 +15,18 @@ namespace RinhaDeBackend.Controllers
             _pessoaService = pessoaService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> ListarPorTermo([FromQuery] string? t)
+        [HttpPost]
+        public async Task<IActionResult> CriarPessoa([FromBody] CriarPessoaRequest pessoa)
         {
-            if (!string.IsNullOrEmpty(t))
+            var pessoaValida = pessoa.ValidarRequest();
+
+            if (pessoaValida)
             {
-                var pessoas = await _pessoaService.ListarPessoas();
-                return Ok(pessoas);
+                var pessoaCriada = await _pessoaService.CriarPessoa(pessoa);
+                return Created($"/pessoas/{pessoaCriada.Id}", pessoaCriada);
             }
 
-            return BadRequest();
+            return UnprocessableEntity();
         }
 
         [HttpGet("{id}")]
@@ -38,18 +40,22 @@ namespace RinhaDeBackend.Controllers
             return Ok(pessoas);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CriarPessoa([FromBody] CriarPessoaRequest pessoa)
+        [HttpGet]
+        public async Task<IActionResult> ListarPorTermo([FromQuery] string? t)
         {
-            var pessoaValida = pessoa.ValidarRequest();
-
-            if (pessoaValida)
+            if (!string.IsNullOrEmpty(t))
             {
-                var pessoaCriada = await _pessoaService.CriarPessoa(pessoa);
-                return Created($"/pessoas/{pessoaCriada.Id}", pessoaCriada);
+                var pessoas = await _pessoaService.BuscarTermo(t);
+                return Ok(pessoas);
             }
 
-            return UnprocessableEntity();
+            return BadRequest();
+        }
+
+        [HttpGet("contagem-pessoas")]
+        public async Task<IActionResult> ContarPessoas()
+        {
+            return Ok(await _pessoaService.ContarPessoas());
         }
     }
 }
