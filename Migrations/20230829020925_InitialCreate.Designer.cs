@@ -12,7 +12,7 @@ using RinhaDeBackend.Data;
 namespace RinhaDeBackend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20230828185154_InitialCreate")]
+    [Migration("20230829020925_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

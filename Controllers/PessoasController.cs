@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using RinhaDeBackend.Controllers.DTOs;
 using RinhaDeBackend.Services;
 
@@ -9,10 +10,13 @@ namespace RinhaDeBackend.Controllers
     public class PessoasController : ControllerBase
     {
         private readonly IPessoaService _pessoaService;
+        private IMemoryCache _memoryCache;
+        private readonly List<string> UsuarioCriado = new List<string>();
 
-        public PessoasController(IPessoaService pessoaService)
+        public PessoasController(IPessoaService pessoaService, IMemoryCache memoryCache)
         {
             _pessoaService = pessoaService;
+            _memoryCache = memoryCache;
         }
 
         [HttpPost]
@@ -20,9 +24,15 @@ namespace RinhaDeBackend.Controllers
         {
             var pessoaValida = pessoa.ValidarRequest();
 
+            if (pessoaValida && UsuarioCriado.Contains(pessoa.Nome))
+            {
+                return UnprocessableEntity();
+            }
+
             if (pessoaValida)
             {
                 var pessoaCriada = await _pessoaService.CriarPessoa(pessoa);
+                UsuarioCriado.Add(pessoaCriada.Nome);
                 return Created($"/pessoas/{pessoaCriada.Id}", pessoaCriada);
             }
 
@@ -32,24 +42,36 @@ namespace RinhaDeBackend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> BuscarPessoa([FromRoute] Guid id)
         {
-            var pessoas = await _pessoaService.BuscarPessoa(id);
+            var pessoa = await _memoryCache.GetOrCreate(id, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
 
-            if (pessoas is null)
+               return await _pessoaService.BuscarPessoa(id);
+            });
+
+            if (pessoa is null)
                 return NotFound();
 
-            return Ok(pessoas);
+            return Ok(pessoa);
         }
 
         [HttpGet]
         public async Task<IActionResult> ListarPorTermo([FromQuery] string? t)
         {
-            if (!string.IsNullOrEmpty(t))
+            if (string.IsNullOrEmpty(t))
             {
-                var pessoas = await _pessoaService.BuscarTermo(t);
-                return Ok(pessoas);
+                return BadRequest();
             }
 
-            return BadRequest();
+            var pessoas = await _memoryCache.GetOrCreate(t, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+
+                return await _pessoaService.BuscarTermo(t);
+            });
+
+            return Ok(pessoas);
+
         }
 
         [HttpGet("contagem-pessoas")]

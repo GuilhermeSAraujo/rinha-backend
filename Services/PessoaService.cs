@@ -22,13 +22,17 @@ namespace RinhaDeBackend.Services
 
         public async Task<Pessoa> BuscarPessoa(Guid id)
         {
-            return await _context.Pessoa.FindAsync(id);
+             return await _context.Pessoa.FindAsync(id);
         }
 
         public async Task<IEnumerable<Pessoa>> BuscarTermo(string termo)
         {
             var termos = await _context.Pessoa.ToListAsync();
-            return termos.Where(p => p.Termo.Contains(termo));
+            return termos.Where(p =>
+                (!string.IsNullOrEmpty(p.Stacks) && p.Stacks.Contains(termo)) ||
+                p.Nome.Contains(termo) ||
+                p.Apelido.Contains(termo)
+            );
         }
 
         public async Task<int> ContarPessoas()

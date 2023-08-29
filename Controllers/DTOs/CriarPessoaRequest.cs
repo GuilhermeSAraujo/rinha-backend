@@ -7,7 +7,7 @@ namespace RinhaDeBackend.Controllers.DTOs
         public string Nome { get; set; }
         public string Apelido { get; set; }
         public string Nascimento   { get; set; }
-        public IEnumerable<string> Stacks { get; set; } = Enumerable.Empty<string>();
+        public IEnumerable<string> Stack { get; set; } = Enumerable.Empty<string>();
 
         public static Pessoa ParsePessoa(CriarPessoaRequest p)
         {
@@ -16,15 +16,15 @@ namespace RinhaDeBackend.Controllers.DTOs
                 Nome = p.Nome,
                 Apelido = p.Apelido,
                 DataNascimento = p.Nascimento,
-                Stacks = p.Stacks.Any() ? string.Join(", ", p.Stacks) : null
+                Stacks = p.Stack.Any() ? string.Join(", ", p.Stack) : null
             };
         }
 
         public bool ValidarRequest()
         {
-            if(string.IsNullOrEmpty(this.Nome)) return false;
-            if(string.IsNullOrEmpty(this.Apelido)) return false;
-            if(string.IsNullOrEmpty(this.Nascimento)) return false;
+            if(string.IsNullOrEmpty(this.Nome) || this.Nome.Any(char.IsDigit)) return false;
+            if(string.IsNullOrEmpty(this.Apelido) || this.Apelido.Any(char.IsDigit)) return false;
+            if(string.IsNullOrEmpty(this.Nascimento) || this.Nascimento.Any(char.IsAsciiLetter)) return false;
             return true;
         }
     }
