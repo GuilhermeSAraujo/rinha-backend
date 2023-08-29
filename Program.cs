@@ -1,44 +1,52 @@
-using Newtonsoft.Json.Serialization;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
+using RinhaDeBackend.Controllers.DTOs;
 using RinhaDeBackend.Data;
 using RinhaDeBackend.Models;
 using RinhaDeBackend.Services;
 using System.Collections.Concurrent;
+using static System.Net.WebRequestMethods;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
-//Enable CORS
-builder.Services.AddCors(c =>
-{
-    c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-});
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddNpgsqlDataSource(
+    "Host=localhost;Username=postgres;Password=admin;Database=postgres" ??
+        "ERRO de connection string!!!", dataSourceBuilderAction: a => { a.UseLoggerFactory(NullLoggerFactory.Instance); });
 
-builder.Services.AddMemoryCache();
-
+builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, Pessoa>());
 builder.Services.AddScoped<IPessoaService, PessoaService>();
 
-builder.Services.AddDbContext<DataContext>();
+builder.Services.AddOutputCache();
 
 var app = builder.Build();
+app.UseOutputCache();
 
+var UnprocessableEntity = Results.Text(ResponseCriacao.DuplicatedResultString, contentType: "application/json; charset=utf-8", statusCode: 422);
+var ResponseAfeStringResponse = Results.Text(ResponseCriacao.ResponseAfeString, contentType: "application/json; charset=utf-8", statusCode: 422);
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.Map("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pessoa> pessoasAdicionadas, IPessoaService pessoaService, CriarPessoaRequest pessoa) =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    var pessoaValida = pessoa.ValidarRequest();
 
-app.UseHttpsRedirection();
+    if (pessoaValida && !pessoasAdicionadas.TryAdd(pessoa.Nome, CriarPessoaRequest.ParsePessoa(pessoa)))
+    {
+        return UnprocessableEntity;
+    }
 
-app.UseAuthorization();
-    
-app.MapControllers();
+    if (!pessoaValida)
+    {
+        return UnprocessableEntity;
+    }
+
+    var pessoaCriada = await pessoaService.CriarPessoa(pessoa);
+    pessoasAdicionadas.TryAdd(pessoa.Nome, pessoaCriada);
+
+    http.Response.Headers.Location = $"/pessoas/{pessoaCriada.Id}";
+    http.Response.StatusCode = 201;
+
+    return Results.Json(new ResponseCriacao { Pessoa = pessoaCriada }, ResponseCriacaoContext.Default.ResponseCriacao);
+});
 
 app.Run();
