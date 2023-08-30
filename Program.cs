@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Npgsql;
 using RinhaDeBackend;
 using RinhaDeBackend.Services;
 using System.Collections.Concurrent;
@@ -6,9 +7,8 @@ using System.Collections.Concurrent;
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
-
 builder.Services.AddNpgsqlDataSource(
-    "Host=localhost;Username=postgres;Password=admin;Database=postgres",
+    "Host=db;Username=admin;Password=123;Database=rinha",
     dataSourceBuilderAction: a => { a.UseLoggerFactory(NullLoggerFactory.Instance); });
 
 builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, Pessoa>());
@@ -34,7 +34,9 @@ app.MapPost("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pe
         return BadRequestEntity;
 
     pessoa.Id = Guid.NewGuid();
+
     var pessoaCriada = await pessoaService.CriarPessoa(pessoa);
+
     pessoasAdicionadas.TryAdd(pessoa.Nome, pessoaCriada);
 
     http.Response.Headers.Location = $"/pessoas/{pessoaCriada.Id}";
@@ -69,5 +71,15 @@ app.MapGet("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pes
 
     return Results.Json(pessoas);
 });
+
+app.MapGet("/contagem-pessoas", async (NpgsqlConnection conn) => {
+    await using (conn)
+    {
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "select count(1) from pessoas";
+        return await cmd.ExecuteScalarAsync();
+    }
+}).CacheOutput(x => x.Expire(TimeSpan.FromSeconds(1)));
 
 app.Run();
