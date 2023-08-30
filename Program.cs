@@ -3,6 +3,7 @@ using Npgsql;
 using RinhaDeBackend;
 using RinhaDeBackend.Services;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
@@ -12,6 +13,7 @@ builder.Services.AddNpgsqlDataSource(
     dataSourceBuilderAction: a => { a.UseLoggerFactory(NullLoggerFactory.Instance); });
 
 builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, Pessoa>());
+
 builder.Services.AddScoped<IPessoaService, PessoaService>();
 
 builder.Services.AddOutputCache();
@@ -28,28 +30,28 @@ app.MapPost("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pe
 
     if (!Pessoa.BasicamenteValida(pessoa) || pessoasAdicionadas.TryGetValue(pessoa.Nome, out _))
         return UnprocessableEntity;
-    
 
-    if(Pessoa.PossuiValoresInvalidos(pessoa))
+
+    if (Pessoa.PossuiValoresInvalidos(pessoa))
         return BadRequestEntity;
 
     pessoa.Id = Guid.NewGuid();
 
     var pessoaCriada = await pessoaService.CriarPessoa(pessoa);
 
-    pessoasAdicionadas.TryAdd(pessoa.Nome, pessoaCriada);
+    pessoasAdicionadas.TryAdd(pessoa.Nome, pessoa);
 
-    http.Response.Headers.Location = $"/pessoas/{pessoaCriada.Id}";
+    http.Response.Headers.Location = $"/pessoas/{pessoa.Id}";
     http.Response.StatusCode = 201;
 
-    return Results.Json(new ResponseCriacao { Pessoa = pessoaCriada }, ResponseCriacaoContext.Default.ResponseCriacao);
+    return Results.Json(new ResponseCriacao { Pessoa = pessoa }, ResponseCriacaoContext.Default.ResponseCriacao);
 });
 
 app.MapGet("/pessoas/{id}", async (HttpContext http, ConcurrentDictionary<string, Pessoa> pessoasAdicionadas, IPessoaService pessoaService, Guid id) =>
 {
     var p = await pessoaService.BuscarPessoa(id);
 
-    if(p is null)
+    if (p is null)
     {
         http.Response.StatusCode = 404;
         return Results.Json(p);
@@ -57,7 +59,7 @@ app.MapGet("/pessoas/{id}", async (HttpContext http, ConcurrentDictionary<string
 
     return Results.Json(p);
 
-});
+}).CacheOutput(x => x.VaryByValue(varyBy: httpContext => new KeyValuePair<string, string>("id", httpContext.Request.RouteValues["id"].ToString())));
 
 app.MapGet("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pessoa> pessoasAdicionadas, IPessoaService pessoaService, string t) =>
 {
@@ -70,9 +72,10 @@ app.MapGet("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pes
     var pessoas = await pessoaService.BuscarTermo(t);
 
     return Results.Json(pessoas);
-});
+}).CacheOutput(c => c.SetVaryByQuery("t").Expire(TimeSpan.FromMinutes(1)));
 
-app.MapGet("/contagem-pessoas", async (NpgsqlConnection conn) => {
+app.MapGet("/contagem-pessoas", async (NpgsqlConnection conn) =>
+{
     await using (conn)
     {
         await conn.OpenAsync();
