@@ -35,7 +35,6 @@ app.MapPost("/pessoas", async (
     if (!Pessoa.BasicamenteValida(pessoa) || pessoasAdicionadas.TryGetValue(pessoa.Nome, out _))
         return UnprocessableEntity;
 
-
     if (Pessoa.PossuiValoresInvalidos(pessoa))
         return BadRequestEntity;
 
@@ -59,9 +58,6 @@ app.MapGet("/pessoas/{id}", async (
 {
     var pessoa = await pessoaService.BuscarPessoa(id);
 
-
-
-
     if (pessoa is not null)
     {
         http.Response.StatusCode = 200;
@@ -70,8 +66,6 @@ app.MapGet("/pessoas/{id}", async (
 
     http.Response.StatusCode = 404;
     return Results.Json(pessoa);
-
-
 }).CacheOutput(x => x.VaryByValue(varyBy: httpContext => new KeyValuePair<string, string>("id", httpContext.Request.RouteValues["id"].ToString())));
 
 app.MapGet("/pessoas", async (
