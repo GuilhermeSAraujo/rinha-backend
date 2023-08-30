@@ -25,7 +25,11 @@ var UnprocessableEntity = Results.Text(ResponseCriacao.DuplicatedResultString, c
 var BadRequestEntity = Results.Text("Bad Request", contentType: "application/json; charset=utf-8", statusCode: 400);
 var ResponseAfeStringResponse = Results.Text(ResponseCriacao.ResponseAfeString, contentType: "application/json; charset=utf-8", statusCode: 422);
 
-app.MapPost("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pessoa> pessoasAdicionadas, IPessoaService pessoaService, Pessoa pessoa) =>
+app.MapPost("/pessoas", async (
+    HttpContext http,
+    ConcurrentDictionary<string, Pessoa> pessoasAdicionadas,
+    IPessoaService pessoaService,
+    Pessoa pessoa) =>
 {
 
     if (!Pessoa.BasicamenteValida(pessoa) || pessoasAdicionadas.TryGetValue(pessoa.Nome, out _))
@@ -47,21 +51,34 @@ app.MapPost("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pe
     return Results.Json(new ResponseCriacao { Pessoa = pessoa }, ResponseCriacaoContext.Default.ResponseCriacao);
 });
 
-app.MapGet("/pessoas/{id}", async (HttpContext http, ConcurrentDictionary<string, Pessoa> pessoasAdicionadas, IPessoaService pessoaService, Guid id) =>
+app.MapGet("/pessoas/{id}", async (
+    HttpContext http,
+    ConcurrentDictionary<string, Pessoa> pessoasAdicionadas,
+    IPessoaService pessoaService,
+    Guid id) =>
 {
-    var p = await pessoaService.BuscarPessoa(id);
+    var pessoa = await pessoaService.BuscarPessoa(id);
 
-    if (p is null)
+
+
+
+    if (pessoa is not null)
     {
-        http.Response.StatusCode = 404;
-        return Results.Json(p);
+        http.Response.StatusCode = 200;
+        return Results.Json(pessoa);
     }
 
-    return Results.Json(p);
+    http.Response.StatusCode = 404;
+    return Results.Json(pessoa);
+
 
 }).CacheOutput(x => x.VaryByValue(varyBy: httpContext => new KeyValuePair<string, string>("id", httpContext.Request.RouteValues["id"].ToString())));
 
-app.MapGet("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pessoa> pessoasAdicionadas, IPessoaService pessoaService, string t) =>
+app.MapGet("/pessoas", async (
+    HttpContext http,
+    ConcurrentDictionary<string, Pessoa> pessoasAdicionadas,
+    IPessoaService pessoaService,
+    string t) =>
 {
     if (string.IsNullOrEmpty(t))
     {
@@ -71,6 +88,7 @@ app.MapGet("/pessoas", async (HttpContext http, ConcurrentDictionary<string, Pes
 
     var pessoas = await pessoaService.BuscarTermo(t);
 
+    http.Response.StatusCode = 200;
     return Results.Json(pessoas);
 }).CacheOutput(c => c.SetVaryByQuery("t").Expire(TimeSpan.FromMinutes(1)));
 

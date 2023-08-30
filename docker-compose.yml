@@ -15,7 +15,7 @@ services:
       resources:
         limits:
           cpus: '0.15'
-          memory: '0.5GB'
+          memory: '1.0GB'
 
   api01:
     container_name: rinha-api01
@@ -29,7 +29,7 @@ services:
       resources:
         limits:
           cpus: '0.6'
-          memory: '1.0GB'
+          memory: '0.75GB'
   api02:
     container_name: rinha-api02
     build: 
@@ -42,7 +42,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '1.0GB'
+          memory: '0.75GB'
 
   nginx:
     image: nginx:latest
