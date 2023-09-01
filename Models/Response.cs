@@ -16,7 +16,7 @@ namespace RinhaDeBackend
 
         public IEnumerable<string>? Stack { get; set; }
 
-        internal static bool BasicamenteValida(Pessoa pessoa)
+        internal static bool HasInvalidBody(Pessoa pessoa)
         {
             var atributosInvalidos = !pessoa.Nascimento.HasValue
                                     || string.IsNullOrEmpty(pessoa.Nome)
@@ -24,19 +24,22 @@ namespace RinhaDeBackend
                                     || string.IsNullOrEmpty(pessoa.Apelido)
                                     || pessoa.Apelido.Length > 32;
 
-            if (atributosInvalidos)
-                return false;
 
-            foreach (var item in pessoa.Stack ?? Enumerable.Empty<string>())
-                if (item.Length > 32 || item.Length == 0)
-                    return false;
+            if (pessoa.Stack != null && pessoa.Stack.Any())
+            {
+                var isStackTooLong = pessoa.Stack?.Where(s => s.Length > 32);
+                if (isStackTooLong != null && isStackTooLong.Any())
+                    atributosInvalidos = true;
+            }
 
-            return true;
+            return atributosInvalidos;
         }
 
-        internal static bool PossuiValoresInvalidos(Pessoa pessoa)
+        internal static bool IsBadRequest(Pessoa pessoa)
         {
-            return pessoa.Nome.Any(char.IsDigit) || pessoa.Apelido.Any(char.IsDigit);
+            return pessoa.Nome.Any(char.IsDigit) ||
+                pessoa.Apelido.Any(char.IsDigit) ||
+                string.Join("", pessoa.Stack).Any(char.IsDigit);
         }
     }
 

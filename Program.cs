@@ -13,6 +13,7 @@ builder.Services.AddNpgsqlDataSource(
     dataSourceBuilderAction: a => { a.UseLoggerFactory(NullLoggerFactory.Instance); });
 
 builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, Pessoa>());
+builder.Services.AddSingleton(_ => new ConcurrentDictionary<Guid, Pessoa>());
 
 builder.Services.AddScoped<IPessoaService, PessoaService>();
 
@@ -27,22 +28,24 @@ var ResponseAfeStringResponse = Results.Text(ResponseCriacao.ResponseAfeString, 
 
 app.MapPost("/pessoas", async (
     HttpContext http,
-    ConcurrentDictionary<string, Pessoa> pessoasAdicionadas,
+    ConcurrentDictionary<string, Pessoa> peopleByApelidoLocalCache,
+    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
     IPessoaService pessoaService,
     Pessoa pessoa) =>
 {
 
-    if (!Pessoa.BasicamenteValida(pessoa) || pessoasAdicionadas.TryGetValue(pessoa.Nome, out _))
+    if (Pessoa.HasInvalidBody(pessoa) || peopleByApelidoLocalCache.TryGetValue(pessoa.Apelido, out _))
         return UnprocessableEntity;
 
-    if (Pessoa.PossuiValoresInvalidos(pessoa))
+    if (Pessoa.IsBadRequest(pessoa))
         return BadRequestEntity;
 
     pessoa.Id = Guid.NewGuid();
 
     var pessoaCriada = await pessoaService.CriarPessoa(pessoa);
 
-    pessoasAdicionadas.TryAdd(pessoa.Nome, pessoa);
+    peopleByApelidoLocalCache.TryAdd(pessoa.Apelido, pessoa);
+    peopleByIdLocalCache.TryAdd((Guid)pessoa.Id, pessoa);
 
     http.Response.Headers.Location = $"/pessoas/{pessoa.Id}";
     http.Response.StatusCode = 201;
@@ -52,20 +55,35 @@ app.MapPost("/pessoas", async (
 
 app.MapGet("/pessoas/{id}", async (
     HttpContext http,
-    ConcurrentDictionary<string, Pessoa> pessoasAdicionadas,
+    ConcurrentDictionary<string, Pessoa> peopleByApelidoLocalCache,
+    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
     IPessoaService pessoaService,
     Guid id) =>
 {
-    var pessoa = await pessoaService.BuscarPessoa(id);
 
-    if (pessoa is not null)
+    peopleByIdLocalCache.TryGetValue(id, out Pessoa? personLocalCache);
+    if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
-        return Results.Json(pessoa);
+        return Results.Json(personLocalCache);
     }
 
-    http.Response.StatusCode = 404;
-    return Results.Json(pessoa);
+    // local redis
+
+    var person = await pessoaService.BuscarPessoa(id);
+
+    if (person is null)
+    {
+        http.Response.StatusCode = 404;
+        return Results.Json(personLocalCache);
+    }
+
+    // adicionar no cache do redis
+    peopleByIdLocalCache.TryAdd(id, person);
+
+
+    http.Response.StatusCode = 200;
+    return Results.Json(person);
 }).CacheOutput(x => x.VaryByValue(varyBy: httpContext => new KeyValuePair<string, string>("id", httpContext.Request.RouteValues["id"].ToString())));
 
 app.MapGet("/pessoas", async (
