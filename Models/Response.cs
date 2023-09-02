@@ -15,31 +15,69 @@ namespace RinhaDeBackend
 
         public IEnumerable<string>? Stack { get; set; }
 
+        public override string ToString() 
+        {
+            string s = string.Empty;
+            if (this.Nome is not null)
+                s += this.Nome + " | ";
+
+            if (this.Apelido is not null)
+                s += this.Apelido + " | ";
+
+            if (this.Nascimento is not null)
+                s += this.Nascimento + " | ";
+
+            if (this.Stack is not null)
+                s += string.Join(", ", this.Stack);
+
+            return s;
+        }
+
         internal static bool HasInvalidBody(Pessoa pessoa)
         {
-            return !pessoa.Nascimento.HasValue
+            //var hasInvalidBody = false;
+            //if (!pessoa.Nascimento.HasValue)
+            //{
+            //    hasInvalidBody = true;
+            //}
+            //if (string.IsNullOrEmpty(pessoa.Nome))
+            //{
+            //    hasInvalidBody = true;
+            //}
+            //if (string.IsNullOrEmpty(pessoa.Apelido))
+            //{
+            //    hasInvalidBody = true;
+            //}
+            //return hasInvalidBody;
+            return (!pessoa.Nascimento.HasValue)
                     || string.IsNullOrEmpty(pessoa.Nome)
-                    || pessoa.Nome.Length > 100
-                    || string.IsNullOrEmpty(pessoa.Apelido)
-                    || pessoa.Apelido.Length > 32;
+                    || string.IsNullOrEmpty(pessoa.Apelido);
         }
 
         internal static bool IsBadRequest(Pessoa pessoa)
         {
             var badRequest = false;
+
+            var stacksAsString = pessoa.Stack is not null && pessoa.Stack.Any() ? string.Join("", pessoa.Stack) : "";
+            if (pessoa.Apelido.Length > 32 ||
+                pessoa.Nome.Length > 100 ||
+                pessoa.Nome.Any(char.IsDigit) ||
+                stacksAsString.Any(char.IsDigit))
+            {
+                badRequest = true;
+                if (badRequest)
+                {
+                    return badRequest;
+                }
+            }
+
             if (pessoa.Stack != null && pessoa.Stack.Any())
             {
                 var isStackTooLong = pessoa.Stack?.Where(s => s.Length > 32);
                 if (isStackTooLong != null && isStackTooLong.Any())
                     badRequest = true;
             }
-
-            if (pessoa.Nome.Any(char.IsDigit) ||
-                pessoa.Apelido.Any(char.IsDigit) ||
-                string.Join("", pessoa.Stack).Any(char.IsDigit))
-            {
-                badRequest = true;
-            }
+            
             return badRequest;
         }
     }

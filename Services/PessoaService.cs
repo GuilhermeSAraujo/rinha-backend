@@ -1,4 +1,5 @@
 ﻿using Npgsql;
+using NpgsqlTypes;
 
 namespace RinhaDeBackend.Services
 {
@@ -22,7 +23,6 @@ namespace RinhaDeBackend.Services
                 {
                     await _conn.OpenAsync();
                     connected = true;
-                    _logger.LogInformation("connected to postgres!!! yey");
                 }
                 catch (NpgsqlException)
                 {
@@ -30,15 +30,25 @@ namespace RinhaDeBackend.Services
                     await Task.Delay(1_000);
                 }
             }
-            var cmd = new NpgsqlCommand("INSERT INTO pessoas (id, nome, apelido, nascimento, stack) VALUES ($1, $2, $3, $4, $5)", _conn);
 
-            cmd.Parameters.AddWithValue(pessoa.Id);
-            cmd.Parameters.AddWithValue(pessoa.Nome);
-            cmd.Parameters.AddWithValue(pessoa.Apelido);
-            cmd.Parameters.AddWithValue(pessoa.Nascimento);
-            cmd.Parameters.AddWithValue(pessoa.Stack != null && pessoa.Stack.Count() > 0 ? string.Join(",", pessoa.Stack) : "");
+            using (var writer = _conn.BeginBinaryImport("COPY pessoas (id, nome, apelido, nascimento, stack) FROM STDIN (FORMAT BINARY)"))
+            {
+                writer.StartRow();
 
-            await cmd.ExecuteNonQueryAsync();
+                writer.Write((Guid)pessoa.Id);
+
+                writer.Write(pessoa.Nome);
+
+                writer.Write(pessoa.Apelido);
+
+                writer.Write(pessoa.Nascimento.Value);
+
+                var stack = pessoa.Stack is not null && pessoa.Stack.Any() ? string.Join(", ", pessoa.Stack) : "";
+                writer.Write(stack);
+
+                writer.Complete();
+            }
+            //Console.WriteLine("User created!");
 
             return pessoa;
         }
@@ -53,7 +63,6 @@ namespace RinhaDeBackend.Services
                 {
                     await _conn.OpenAsync();
                     connected = true;
-                    _logger.LogInformation("connected to postgres!!! yey");
                 }
                 catch (NpgsqlException)
                 {
@@ -95,7 +104,6 @@ namespace RinhaDeBackend.Services
                 {
                     await _conn.OpenAsync();
                     connected = true;
-                    _logger.LogInformation("connected to postgres!!! yey");
                 }
                 catch (NpgsqlException)
                 {
@@ -103,7 +111,7 @@ namespace RinhaDeBackend.Services
                     await Task.Delay(1_000);
                 }
             }
-            using var cmd = new NpgsqlCommand("SELECT id, nome, apelido, nascimento, stack from pessoas where termo ILIKE @termo", _conn);
+            using var cmd = new NpgsqlCommand("SELECT id, nome, apelido, nascimento, stack from pessoas where termo LIKE @termo", _conn);
             cmd.Parameters.AddWithValue("@termo", "%" + termo + "%");
 
             //cmd.Parameters.AddWithValue(termo); 
