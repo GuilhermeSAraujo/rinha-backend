@@ -65,7 +65,7 @@ async (
 
     pessoa.Id = Guid.NewGuid();
 
-    if(waitingForCreation.Count < 500)
+    if(waitingForCreation.Count < 100)
     {
         waitingForCreation.Enqueue(pessoa);
     }
