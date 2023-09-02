@@ -1,5 +1,6 @@
 ﻿using Npgsql;
 using NpgsqlTypes;
+using System.Collections.Concurrent;
 
 namespace RinhaDeBackend.Services
 {
@@ -13,7 +14,7 @@ namespace RinhaDeBackend.Services
             _logger = logger;
         }
 
-        public async Task<Pessoa> CriarPessoa(Pessoa pessoa)
+        public async Task CriarPessoa(ConcurrentQueue<Pessoa> waitingForCreation)
         {
             bool connected = false;
 
@@ -31,26 +32,27 @@ namespace RinhaDeBackend.Services
                 }
             }
 
-            using (var writer = _conn.BeginBinaryImport("COPY pessoas (id, nome, apelido, nascimento, stack) FROM STDIN (FORMAT BINARY)"))
+            using var writer = _conn.BeginBinaryImport("COPY pessoas (id, nome, apelido, nascimento, stack) FROM STDIN (FORMAT BINARY)");
+            Console.WriteLine("Starting to write in db");
+            while (waitingForCreation.TryDequeue(out var person))
             {
+
                 writer.StartRow();
 
-                writer.Write((Guid)pessoa.Id);
+                writer.Write((Guid)person.Id);
 
-                writer.Write(pessoa.Nome);
+                writer.Write(person.Nome);
 
-                writer.Write(pessoa.Apelido);
+                writer.Write(person.Apelido);
 
-                writer.Write(pessoa.Nascimento.Value);
+                writer.Write(person.Nascimento.Value);
 
-                var stack = pessoa.Stack is not null && pessoa.Stack.Any() ? string.Join(", ", pessoa.Stack) : "";
+                var stack = person.Stack is not null && person.Stack.Any() ? string.Join(", ", person.Stack) : "";
                 writer.Write(stack);
-
-                writer.Complete();
             }
-            //Console.WriteLine("User created!");
 
-            return pessoa;
+            writer.Complete();
+            Console.WriteLine("Transaction completed!");
         }
 
         public async Task<Pessoa?> BuscarPessoa(Guid id)
@@ -111,7 +113,7 @@ namespace RinhaDeBackend.Services
                     await Task.Delay(1_000);
                 }
             }
-            using var cmd = new NpgsqlCommand("SELECT id, nome, apelido, nascimento, stack from pessoas where termo LIKE @termo", _conn);
+            using var cmd = new NpgsqlCommand("SELECT id, nome, apelido, nascimento, stack from pessoas where termo LIKE @termo LIMIT 50", _conn);
             cmd.Parameters.AddWithValue("@termo", "%" + termo + "%");
 
             //cmd.Parameters.AddWithValue(termo); 

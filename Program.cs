@@ -49,26 +49,30 @@ async (
 {
     if (Pessoa.HasInvalidBody(pessoa) || peopleByApelidoLocalCache.TryGetValue(pessoa.Apelido, out _))
     {
-        Console.WriteLine("Primeiro if " + pessoa.ToString());
         return UnprocessableEntity;
     }
 
     if (Pessoa.IsBadRequest(pessoa))
     {
-        Console.WriteLine("Segundo if + " + pessoa.ToString());
         return BadRequestEntity;
     }
 
     var personOnRedis = await distributedCache.GetAsync(pessoa.Apelido);
     if (personOnRedis is not null)
     {
-        Console.WriteLine("post/pessoas} - redis");
         return UnprocessableEntity;
     }
 
     pessoa.Id = Guid.NewGuid();
 
-    var pessoaCriada = await pessoaService.CriarPessoa(pessoa);
+    if(waitingForCreation.Count < 500)
+    {
+        waitingForCreation.Enqueue(pessoa);
+    }
+    else
+    {
+        _ = pessoaService.CriarPessoa(waitingForCreation);
+    }
 
     peopleByApelidoLocalCache.TryAdd(pessoa.Apelido, pessoa);
     peopleByIdLocalCache.TryAdd((Guid)pessoa.Id, pessoa);
@@ -98,7 +102,6 @@ async (
     peopleByIdLocalCache.TryGetValue(id, out Pessoa? personLocalCache);
     if (personLocalCache is not null)
     {
-        Console.WriteLine("/pessoas/{id} - local");
         http.Response.StatusCode = 200;
         return Results.Json(personLocalCache);
     }
@@ -106,28 +109,25 @@ async (
     var personOnRedis = await distributedCache.GetAsync(id.ToString());
     if (personOnRedis is not null)
     {
-        Console.WriteLine("/pessoas/{id} - redis");
         var personAsString = Encoding.UTF8.GetString(personOnRedis);
         http.Response.StatusCode = 200;
         return Results.Json(JsonSerializer.Deserialize<Pessoa>(personAsString));
     }
-    http.Response.StatusCode = 404;
-    return Results.NotFound();
 
-    //var person = await pessoaService.BuscarPessoa(id);
+    var person = await pessoaService.BuscarPessoa(id);
+    Console.WriteLine("VOCÊ NUNCA DEVE VIR AQUI!!!!");
 
-    //if (person is null)
-    //{
-    //    http.Response.StatusCode = 404;
-    //    return Results.Json(personLocalCache);
-    //}
+    if (person is null)
+    {
+        http.Response.StatusCode = 404;
+        return Results.Json(person);
+    }
 
-    //// adicionar no cache do redis
-    //peopleByIdLocalCache.TryAdd(id, person);
+    // SE PASSAR DO CONSOLE LOG TEM QUE VIR E ADICIONAR REDIS
+    peopleByIdLocalCache.TryAdd(id, person);
 
-
-    //http.Response.StatusCode = 200;
-    //return Results.Json(person);
+    http.Response.StatusCode = 200;
+    return Results.Json(person);
 }).CacheOutput(x => x.VaryByValue(varyBy: httpContext => new KeyValuePair<string, string>("id", httpContext.Request.RouteValues["id"].ToString())));
 
 app.MapGet("/pessoas", 
@@ -137,6 +137,7 @@ async (
     IPessoaService pessoaService,
     string t) =>
 {
+
     if (string.IsNullOrEmpty(t))
     {
         http.Response.StatusCode = 400;
