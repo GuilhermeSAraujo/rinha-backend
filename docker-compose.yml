@@ -16,18 +16,6 @@ services:
         limits:
           cpus: '0.95'
           memory: '1.6GB'
-
-  redis:
-    image: redis:latest
-    hostname: redis
-    ports:
-      - 6379:6379
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: '0.3GB'
-
   api01:
     container_name: rinha-api01
     build: 
@@ -54,7 +42,6 @@ services:
         limits:
           cpus: '0.1'
           memory: '0.4GB'
-
   nginx:
     image: nginx:latest
     volumes:
@@ -68,6 +55,16 @@ services:
       resources:
         limits:
           cpus: '0.25'
+          memory: '0.3GB'
+  redis:
+    image: redis:latest
+    hostname: redis
+    ports:
+      - 6379:6379
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
           memory: '0.3GB'
 
 networks:

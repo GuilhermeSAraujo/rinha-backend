@@ -36,7 +36,7 @@ namespace RinhaDeBackend.Services
             cmd.Parameters.AddWithValue(pessoa.Nome);
             cmd.Parameters.AddWithValue(pessoa.Apelido);
             cmd.Parameters.AddWithValue(pessoa.Nascimento);
-            cmd.Parameters.AddWithValue(string.Join(",", pessoa.Stack));
+            cmd.Parameters.AddWithValue(pessoa.Stack != null && pessoa.Stack.Count() > 0 ? string.Join(",", pessoa.Stack) : "");
 
             await cmd.ExecuteNonQueryAsync();
 
@@ -103,10 +103,10 @@ namespace RinhaDeBackend.Services
                     await Task.Delay(1_000);
                 }
             }
-            using var cmd = new NpgsqlCommand("SELECT id, nome, apelido, nascimento, stack from pessoas where termo LIKE @termo", _conn);
+            using var cmd = new NpgsqlCommand("SELECT id, nome, apelido, nascimento, stack from pessoas where termo ILIKE @termo", _conn);
             cmd.Parameters.AddWithValue("@termo", "%" + termo + "%");
 
-            //cmd.Parameters.AddWithValue(termo);
+            //cmd.Parameters.AddWithValue(termo); 
 
             using var reader = await cmd.ExecuteReaderAsync();
 
@@ -128,21 +128,5 @@ namespace RinhaDeBackend.Services
 
             return pessoas;
         }
-
-        //public async Task<IEnumerable<Pessoa>> BuscarTermo(string termo)
-        //{
-        //    var termos = await _context.Pessoa.ToListAsync();
-        //    return termos.Where(p =>
-        //        //(!string.IsNullOrEmpty(p.Stack) && p.Stack.Contains(termo)) ||
-        //        p.Nome.Contains(termo) ||
-        //        p.Apelido.Contains(termo)
-        //    );
-        //}
-
-        //public async Task<int> ContarPessoas()
-        //{
-        //    var r = await _context.Pessoa.FromSql($"SELECT COUNT(Id) FROM Pessoa").ToListAsync();
-        //    return 100;
-        //}
     }
 }

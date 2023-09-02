@@ -3,7 +3,6 @@
 namespace RinhaDeBackend
 {
 
-
     public class Pessoa
     {
         public Guid? Id { get; set; }
@@ -18,28 +17,30 @@ namespace RinhaDeBackend
 
         internal static bool HasInvalidBody(Pessoa pessoa)
         {
-            var atributosInvalidos = !pessoa.Nascimento.HasValue
-                                    || string.IsNullOrEmpty(pessoa.Nome)
-                                    || pessoa.Nome.Length > 100
-                                    || string.IsNullOrEmpty(pessoa.Apelido)
-                                    || pessoa.Apelido.Length > 32;
-
-
-            if (pessoa.Stack != null && pessoa.Stack.Any())
-            {
-                var isStackTooLong = pessoa.Stack?.Where(s => s.Length > 32);
-                if (isStackTooLong != null && isStackTooLong.Any())
-                    atributosInvalidos = true;
-            }
-
-            return atributosInvalidos;
+            return !pessoa.Nascimento.HasValue
+                    || string.IsNullOrEmpty(pessoa.Nome)
+                    || pessoa.Nome.Length > 100
+                    || string.IsNullOrEmpty(pessoa.Apelido)
+                    || pessoa.Apelido.Length > 32;
         }
 
         internal static bool IsBadRequest(Pessoa pessoa)
         {
-            return pessoa.Nome.Any(char.IsDigit) ||
+            var badRequest = false;
+            if (pessoa.Stack != null && pessoa.Stack.Any())
+            {
+                var isStackTooLong = pessoa.Stack?.Where(s => s.Length > 32);
+                if (isStackTooLong != null && isStackTooLong.Any())
+                    badRequest = true;
+            }
+
+            if (pessoa.Nome.Any(char.IsDigit) ||
                 pessoa.Apelido.Any(char.IsDigit) ||
-                string.Join("", pessoa.Stack).Any(char.IsDigit);
+                string.Join("", pessoa.Stack).Any(char.IsDigit))
+            {
+                badRequest = true;
+            }
+            return badRequest;
         }
     }
 
