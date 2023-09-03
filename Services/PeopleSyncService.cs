@@ -24,7 +24,8 @@ namespace RinhaDeBackend.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var thread = new Thread(async () => {
+            var thread = new Thread(async () =>
+            {
 
                 var natsOptions = NatsOptions.Default with
                 {
@@ -54,5 +55,5 @@ namespace RinhaDeBackend.Services
             thread.Start();
         }
     }
-    }
 }
+
