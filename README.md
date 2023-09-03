@@ -1,9 +1,18 @@
 # RinhaDeBackend
 
-dotnet ef migrations add InitialCreate
-dotnet ef database update
+This project was my participation in [Rinha de Backend](https://github.com/zanfranceschi/rinha-de-backend-2023-q3). The central idea was to build the most performatic API while adhering to some rules and run a stress test to determine which one performs better.
 
-Guilherme@DPCGUILHERMESOUZA MINGW64 ~/Documents/rinha-de-backend-2023-q3/teste/gatling (main)
-$ bash run-test
+The API has 3 endpoints:
 
-docker-compose up -d
+-   **POST**: /pessoas
+    -   Performs body validations and creates the user in the database.
+-   **GET**: /pessoas/id
+    -   Searches for the person with that ID in the database.
+-   **GET**: /pessoas?t=jo
+    -   Searches for all users whose names, nicknames, or stacks contain "jo".
+
+I made two completely different implementations:
+- Usign Redis as a cache database:
+	- Code available on "[redis-implementation](https://github.com/GuilhermeSAraujo/rinha-backend/tree/redis-implementation)" branch.
+- Using pub/sub design pattern, with Nats server:
+	- Code available on "[pub/sub-implementation](https://github.com/GuilhermeSAraujo/rinha-backend/tree/pub/sub-implementation)" branch.
