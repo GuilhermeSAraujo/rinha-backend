@@ -22,11 +22,9 @@ builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, Pessoa>()); 
 builder.Services.AddSingleton(_ => Channel.CreateUnbounded<Pessoa>(new UnboundedChannelOptions { SingleReader = true })); // channel to create users "queue"
 
 var natsDestination = "Creation";
-var natsOwnChannel = "NATS_OWN";
-builder.Services.AddSingleton<string>(natsOwnChannel ?? "");
 
 builder.Services.AddHostedService<PersonInsertService>();
-builder.Services.AddSingleton<PeopleSyncService>();
+builder.Services.AddSingleton<IHostedService, PeopleSyncService>();
 
 builder.Services.AddOutputCache();
 
@@ -41,7 +39,7 @@ app.MapPost("/pessoas",
 async (
     HttpContext http,
     ConcurrentDictionary<string, byte> peopleByApelidoCache,
-    Dictionary<Guid, Pessoa> peopleByIdLocalCache,
+    ConcurrentDictionary<Guid, Pessoa> peopleByIdCache,
     Channel<Pessoa> createPersonChannel,
     INatsConnection natsConnection,
     Pessoa pessoa) =>
@@ -56,12 +54,6 @@ async (
         return BadRequestEntity;
     }
 
-    //var personOnRedis = await distributedCache.GetAsync(pessoa.Apelido);
-    //if (personOnRedis is not null)
-    //{
-    //    return UnprocessableEntity;
-    //}
-
     pessoa.Id = Guid.NewGuid();
 
     var tasks = new Task[]
@@ -72,20 +64,18 @@ async (
     await Task.WhenAll(tasks);
 
     peopleByApelidoCache.TryAdd(pessoa.Apelido, default);
-    peopleByIdLocalCache.TryAdd((Guid)pessoa.Id, pessoa);
+    peopleByIdCache.TryAdd((Guid)pessoa.Id, pessoa);
 
     http.Response.Headers.Location = $"/pessoas/{pessoa.Id}";
     http.Response.StatusCode = 201;
 
     return Results.Json(new ResponseCriacao { Pessoa = pessoa }, ResponseCriacaoContext.Default.ResponseCriacao);
 });
-/*
+
 app.MapGet("/pessoas/{id}",
 async (
     HttpContext http,
-    IDistributedCache distributedCache,
-    Dictionary<Guid, Pessoa> peopleByIdLocalCache,
-    IPessoaService pessoaService,
+    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
     Guid id) =>
 {
     peopleByIdLocalCache.TryGetValue(id, out Pessoa? personLocalCache);
@@ -94,13 +84,19 @@ async (
         http.Response.StatusCode = 200;
         return Results.Json(personLocalCache);
     }
+    await Task.Delay(10);
 
-    var personOnRedis = await distributedCache.GetAsync(id.ToString());
-    if (personOnRedis is not null)
+    if (personLocalCache is not null)
     {
-        var personAsString = Encoding.UTF8.GetString(personOnRedis);
         http.Response.StatusCode = 200;
-        return Results.Json(JsonSerializer.Deserialize<Pessoa>(personAsString));
+        return Results.Json(personLocalCache);
+    }
+    await Task.Delay(10);
+
+    if (personLocalCache is not null)
+    {
+        http.Response.StatusCode = 200;
+        return Results.Json(personLocalCache);
     }
 
 
@@ -110,7 +106,7 @@ async (
 app.MapGet("/pessoas",
 async (
     HttpContext http,
-    IPessoaService pessoaService,
+    ConcurrentDictionary<string, Pessoa> termoPessoaCache,
     string t) =>
 {
 
@@ -120,12 +116,14 @@ async (
         return Results.Json(t);
     }
 
-    var pessoas = await pessoaService.BuscarTermo(t);
+    var people = termoPessoaCache.Where(p => p.Key.Contains(t))
+                                 .Take(50)
+                                 .Select(p => p.Value);
 
     http.Response.StatusCode = 200;
-    return Results.Json(pessoas);
-});
-*/
+    return Results.Json(people);
+}).CacheOutput(c => c.SetVaryByQuery("t").Expire(TimeSpan.FromMinutes(1)));
+
 app.MapGet("/contagem-pessoas", async (NpgsqlConnection conn) =>
 {
     await using (conn)
