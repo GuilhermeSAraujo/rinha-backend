@@ -20,6 +20,7 @@ namespace RinhaDeBackend.Services
             _peopleByApelidoCache = peopleByApelidoCache;
             _peopleByIdCache = peopleByIdCache;
             _termoPessoaCache = termoPessoaCache;
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
