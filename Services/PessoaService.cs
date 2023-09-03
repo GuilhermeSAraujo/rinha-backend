@@ -1,5 +1,4 @@
 ﻿using Npgsql;
-using NpgsqlTypes;
 using System.Collections.Concurrent;
 
 namespace RinhaDeBackend.Services

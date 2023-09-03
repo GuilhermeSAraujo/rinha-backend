@@ -15,7 +15,7 @@ namespace RinhaDeBackend
 
         public IEnumerable<string>? Stack { get; set; }
 
-        public override string ToString() 
+        public override string ToString()
         {
             string s = string.Empty;
             if (this.Nome is not null)
@@ -77,7 +77,7 @@ namespace RinhaDeBackend
                 if (isStackTooLong != null && isStackTooLong.Any())
                     badRequest = true;
             }
-            
+
             return badRequest;
         }
     }

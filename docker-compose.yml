@@ -15,34 +15,36 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.4'
-          memory: '1.0GB'
+          cpus: '0.15'
+          memory: '0.4GB'
   api01:
     container_name: rinha-api01
     build: 
         context: .
     depends_on:
       - db
+      - nats 
     environment:
       - ASPNETCORE_HTTP_PORTS=80
     deploy:
       resources:
         limits:
-          cpus: '0.2'
-          memory: '0.5GB'
+          cpus: '0.5'
+          memory: '0.9GB'
   api02:
     container_name: rinha-api02
     build: 
         context: .
     depends_on:
       - db
+      - nats 
     environment:
       - ASPNETCORE_HTTP_PORTS=80
     deploy:
       resources:
         limits:
-          cpus: '0.2'
-          memory: '0.5GB'
+          cpus: '0.5'
+          memory: '0.9GB'
   nginx:
     image: nginx:latest
     volumes:
@@ -55,19 +57,18 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.2'
+          cpus: '0.25'
           memory: '0.5GB'
-  redis:
-    image: redis:latest
-    hostname: redis
+  nats:
+    hostname: nats
+    image: nats:latest
     ports:
-      - 6379:6379
+      - '4222:4222'
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: '0.5GB'
-
+          cpus: '0.1'
+          memory: '0.3GB'
 networks:
   default:
     driver: bridge
