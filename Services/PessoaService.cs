@@ -33,7 +33,7 @@ namespace RinhaDeBackend.Services
             }
 
             using var writer = _conn.BeginBinaryImport("COPY pessoas (id, nome, apelido, nascimento, stack) FROM STDIN (FORMAT BINARY)");
-            Console.WriteLine("Starting to write in db");
+            _logger.LogInformation("Starting to write in db");
             while (waitingForCreation.TryDequeue(out var person))
             {
 
@@ -52,7 +52,8 @@ namespace RinhaDeBackend.Services
             }
 
             writer.Complete();
-            Console.WriteLine("Transaction completed!");
+            _logger.LogInformation("Transaction completed!");
+
         }
 
         public async Task<Pessoa?> BuscarPessoa(Guid id)
@@ -84,8 +85,8 @@ namespace RinhaDeBackend.Services
                 pessoa = new Pessoa
                 {
                     Id = reader.GetGuid(0),         // Assuming Id is in the first column (index 0)
-                    Apelido = reader.GetString(1),   // Assuming Apelido is in the third column (index 2)
-                    Nome = reader.GetString(2),      // Assuming Nome is in the second column (index 1)
+                    Nome = reader.GetString(1),      // Assuming Nome is in the second column (index 1)
+                    Apelido = reader.GetString(2),   // Assuming Apelido is in the third column (index 2)
                     Nascimento = DateOnly.FromDateTime(reader.GetDateTime(3)), // Assuming Nascimento is in the fourth column (index 3)
                     Stack = reader.GetString(4).Split(',').Select(element => element.Trim())      // Assuming Stack is in the fifth column (index 4)
                 };

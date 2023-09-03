@@ -19,8 +19,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = "redis:6379";
 });
 
-builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, Pessoa>());
-builder.Services.AddSingleton(_ => new ConcurrentDictionary<Guid, Pessoa>());
+builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, byte>());
+builder.Services.AddSingleton(_ => new Dictionary<Guid, Pessoa>());
 builder.Services.AddSingleton(_ => new ConcurrentQueue<Pessoa>());
 
 builder.Services.AddScoped<IPessoaService, PessoaService>();
@@ -41,8 +41,8 @@ app.MapPost("/pessoas",
 async (
     HttpContext http,
     IDistributedCache distributedCache,
-    ConcurrentDictionary<string, Pessoa> peopleByApelidoLocalCache,
-    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
+    ConcurrentDictionary<string, byte> peopleByApelidoLocalCache,
+    Dictionary<Guid, Pessoa> peopleByIdLocalCache,
     ConcurrentQueue<Pessoa> waitingForCreation,
     IPessoaService pessoaService,
     Pessoa pessoa) =>
@@ -65,16 +65,16 @@ async (
 
     pessoa.Id = Guid.NewGuid();
 
-    if(waitingForCreation.Count < 100)
+    if (waitingForCreation.Count < 100)
     {
         waitingForCreation.Enqueue(pessoa);
     }
     else
     {
-        _ = pessoaService.CriarPessoa(waitingForCreation);
+        await pessoaService.CriarPessoa(waitingForCreation);
     }
 
-    peopleByApelidoLocalCache.TryAdd(pessoa.Apelido, pessoa);
+    peopleByApelidoLocalCache.TryAdd(pessoa.Apelido, default);
     peopleByIdLocalCache.TryAdd((Guid)pessoa.Id, pessoa);
 
     var tasks = new[]
@@ -90,12 +90,11 @@ async (
     return Results.Json(new ResponseCriacao { Pessoa = pessoa }, ResponseCriacaoContext.Default.ResponseCriacao);
 });
 
-app.MapGet("/pessoas/{id}", 
+app.MapGet("/pessoas/{id}",
 async (
     HttpContext http,
     IDistributedCache distributedCache,
-    ConcurrentDictionary<string, Pessoa> peopleByApelidoLocalCache,
-    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
+    Dictionary<Guid, Pessoa> peopleByIdLocalCache,
     IPessoaService pessoaService,
     Guid id) =>
 {
@@ -114,26 +113,13 @@ async (
         return Results.Json(JsonSerializer.Deserialize<Pessoa>(personAsString));
     }
 
-    var person = await pessoaService.BuscarPessoa(id);
-    Console.WriteLine("VOCÊ NUNCA DEVE VIR AQUI!!!!");
 
-    if (person is null)
-    {
-        http.Response.StatusCode = 404;
-        return Results.Json(person);
-    }
-
-    // SE PASSAR DO CONSOLE LOG TEM QUE VIR E ADICIONAR REDIS
-    peopleByIdLocalCache.TryAdd(id, person);
-
-    http.Response.StatusCode = 200;
-    return Results.Json(person);
+    return Results.NotFound();
 }).CacheOutput(x => x.VaryByValue(varyBy: httpContext => new KeyValuePair<string, string>("id", httpContext.Request.RouteValues["id"].ToString())));
 
-app.MapGet("/pessoas", 
+app.MapGet("/pessoas",
 async (
     HttpContext http,
-    ConcurrentDictionary<string, Pessoa> pessoasAdicionadas,
     IPessoaService pessoaService,
     string t) =>
 {
@@ -152,7 +138,7 @@ async (
 
 app.MapGet("/contagem-pessoas", async (NpgsqlConnection conn) =>
 {
-    await using (conn)  
+    await using (conn)
     {
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
