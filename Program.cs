@@ -78,7 +78,7 @@ async (
     ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
     Guid id) =>
 {
-    peopleByIdLocalCache.TryGetValue(id, out var  personLocalCache);
+    peopleByIdLocalCache.TryGetValue(id, out var personLocalCache);
     if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
