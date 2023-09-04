@@ -48,33 +48,36 @@ namespace RinhaDeBackend.Services
                 {
                     people.Add(person);
 
-                    if (people.Count < 10)
+                    if (people.Count < 100)
                     {
                         continue;
                     }
 
                     try
                     {
-                        using var writer = _conn.BeginBinaryImport("COPY pessoas (id, nome, apelido, nascimento, stack) FROM STDIN (FORMAT BINARY)");
+                        var batch = _conn.CreateBatch();
+                        var batchCommands = new List<NpgsqlBatchCommand>();
                         _logger.LogInformation("Starting to write in db");
 
                         foreach (var p in people)
                         {
-                            writer.StartRow();
+                            var batchCmd = new NpgsqlBatchCommand("""
+                                insert into pessoas
+                                (id, nome, apelido, nascimento, stack)
+                                values ($1, $2, $3, $4, $5);
+                            """);
 
-                            writer.Write((Guid)p.Id);
-
-                            writer.Write(p.Nome);
-
-                            writer.Write(p.Apelido);
-
-                            writer.Write(p.Nascimento.Value);
-
+                            batchCmd.Parameters.AddWithValue(p.Id);
+                            batchCmd.Parameters.AddWithValue(p.Nome);
+                            batchCmd.Parameters.AddWithValue(p.Apelido);
+                            batchCmd.Parameters.AddWithValue(p.Nascimento.Value);
                             var stack = p.Stack is not null && p.Stack.Any() ? string.Join(", ", p.Stack) : "";
-                            writer.Write(stack);
+                            batchCmd.Parameters.AddWithValue(stack);
+
+                            batch.BatchCommands.Add(batchCmd);
                         }
 
-                        writer.Complete();
+                        await batch.ExecuteNonQueryAsync();
                         _logger.LogInformation("Insertion completed!");
 
                         people.Clear();

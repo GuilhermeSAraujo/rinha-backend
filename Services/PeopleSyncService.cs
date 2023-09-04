@@ -42,7 +42,7 @@ namespace RinhaDeBackend.Services
                 await foreach (var msg in sub.Msgs.ReadAllAsync(stoppingToken))
                 {
                     var person = msg.Data;
-                    var buscaStackValue = person.Stack == null ? "" : string.Join("", person.Stack.Select(s => s.ToString()));
+                    var buscaStackValue = person.Stack == null ? "" : string.Join("", person.Stack);
                     var buscaValue = $"{person.Apelido}{person.Nome}{buscaStackValue}" ?? "";
 
                     _peopleByApelidoCache.TryAdd(person.Apelido, default);

@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddNats(1, configureOptions: options => NatsOptions.Default with { Url = "nats:4222" });
 
 builder.Services.AddNpgsqlDataSource(
-    "Host=db;Username=admin;Password=123;Database=rinha",
+    "Host=db;Username=admin;Password=123;Database=rinha;Connection Pruning Interval=1;Connection Idle Lifetime=2;Enlist=false;No Reset On Close=true",
     dataSourceBuilderAction: a => { a.UseLoggerFactory(NullLoggerFactory.Instance); });
 
 builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, byte>()); // apelido created cache
@@ -44,7 +44,7 @@ async (
     INatsConnection natsConnection,
     Pessoa pessoa) =>
 {
-    if (Pessoa.HasInvalidBody(pessoa) || peopleByApelidoCache.TryGetValue(pessoa.Apelido, out _))
+    if (Pessoa.HasInvalidBody(pessoa) || !peopleByApelidoCache.TryAdd(pessoa.Apelido, default))
     {
         return UnprocessableEntity;
     }
@@ -78,7 +78,7 @@ async (
     ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
     Guid id) =>
 {
-    peopleByIdLocalCache.TryGetValue(id, out Pessoa? personLocalCache);
+    peopleByIdLocalCache.TryGetValue(id, out var  personLocalCache);
     if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
@@ -86,6 +86,7 @@ async (
     }
     await Task.Delay(10);
 
+    peopleByIdLocalCache.TryGetValue(id, out personLocalCache);
     if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
@@ -93,6 +94,7 @@ async (
     }
     await Task.Delay(10);
 
+    peopleByIdLocalCache.TryGetValue(id, out personLocalCache);
     if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
