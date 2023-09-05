@@ -47,14 +47,14 @@ async (
     IPessoaService pessoaService,
     Pessoa pessoa) =>
 {
-    if (Pessoa.HasInvalidBody(pessoa) || peopleByApelidoLocalCache.TryGetValue(pessoa.Apelido, out _))
+    if (!Pessoa.HasInvalidBody(pessoa))
     {
-        return UnprocessableEntity;
+        return Results.UnprocessableEntity();
     }
 
-    if (Pessoa.IsBadRequest(pessoa))
+    if (peopleByApelidoLocalCache.TryGetValue(pessoa.Apelido, out _))
     {
-        return BadRequestEntity;
+        return Results.UnprocessableEntity();
     }
 
     var personOnRedis = await distributedCache.GetAsync(pessoa.Apelido);
@@ -65,11 +65,8 @@ async (
 
     pessoa.Id = Guid.NewGuid();
 
-    if (waitingForCreation.Count < 100)
-    {
-        waitingForCreation.Enqueue(pessoa);
-    }
-    else
+    waitingForCreation.Enqueue(pessoa);
+    if (waitingForCreation.Count > 100)
     {
         await pessoaService.CriarPessoa(waitingForCreation);
     }

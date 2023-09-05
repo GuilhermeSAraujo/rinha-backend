@@ -15,7 +15,7 @@ namespace RinhaDeBackend
 
         public IEnumerable<string>? Stack { get; set; }
 
-        public override string ToString() 
+        public override string ToString()
         {
             string s = string.Empty;
             if (this.Nome is not null)
@@ -35,23 +35,20 @@ namespace RinhaDeBackend
 
         internal static bool HasInvalidBody(Pessoa pessoa)
         {
-            //var hasInvalidBody = false;
-            //if (!pessoa.Nascimento.HasValue)
-            //{
-            //    hasInvalidBody = true;
-            //}
-            //if (string.IsNullOrEmpty(pessoa.Nome))
-            //{
-            //    hasInvalidBody = true;
-            //}
-            //if (string.IsNullOrEmpty(pessoa.Apelido))
-            //{
-            //    hasInvalidBody = true;
-            //}
-            //return hasInvalidBody;
-            return (!pessoa.Nascimento.HasValue)
-                    || string.IsNullOrEmpty(pessoa.Nome)
-                    || string.IsNullOrEmpty(pessoa.Apelido);
+            var atributosInvalidos = !pessoa.Nascimento.HasValue
+                                || string.IsNullOrEmpty(pessoa.Nome)
+                                || pessoa.Nome.Length > 100
+                                || string.IsNullOrEmpty(pessoa.Apelido)
+                                || pessoa.Apelido.Length > 32;
+
+            if (atributosInvalidos)
+                return false;
+
+            foreach (var item in pessoa.Stack ?? Enumerable.Empty<string>())
+                if (item.Length > 32 || item.Length == 0)
+                    return false;
+
+            return true;
         }
 
         internal static bool IsBadRequest(Pessoa pessoa)
@@ -77,7 +74,7 @@ namespace RinhaDeBackend
                 if (isStackTooLong != null && isStackTooLong.Any())
                     badRequest = true;
             }
-            
+
             return badRequest;
         }
     }
