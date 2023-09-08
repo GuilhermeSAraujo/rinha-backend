@@ -27,13 +27,12 @@ namespace RinhaDeBackend.Services
                 }
                 catch (NpgsqlException)
                 {
-                    _logger.LogWarning("retrying connection to postgres");
+                    _logger.LogWarning("Retrying connection to postgres");
                     await Task.Delay(1_000);
                 }
             }
 
             using var writer = _conn.BeginBinaryImport("COPY pessoas (id, nome, apelido, nascimento, stack) FROM STDIN (FORMAT BINARY)");
-            _logger.LogInformation("Starting to write in db");
             while (waitingForCreation.TryDequeue(out var person))
             {
 
@@ -52,7 +51,6 @@ namespace RinhaDeBackend.Services
             }
 
             writer.Complete();
-            _logger.LogInformation("Transaction completed!");
 
         }
 
@@ -69,7 +67,7 @@ namespace RinhaDeBackend.Services
                 }
                 catch (NpgsqlException)
                 {
-                    _logger.LogWarning("retrying connection to postgres");
+                    _logger.LogWarning("Retrying connection to postgres");
                     await Task.Delay(1_000);
                 }
             }
@@ -110,14 +108,12 @@ namespace RinhaDeBackend.Services
                 }
                 catch (NpgsqlException)
                 {
-                    _logger.LogWarning("retrying connection to postgres");
+                    _logger.LogWarning("Retrying connection to postgres");
                     await Task.Delay(1_000);
                 }
             }
             using var cmd = new NpgsqlCommand("SELECT id, nome, apelido, nascimento, stack from pessoas where termo LIKE @termo LIMIT 50", _conn);
             cmd.Parameters.AddWithValue("@termo", "%" + termo + "%");
-
-            //cmd.Parameters.AddWithValue(termo); 
 
             using var reader = await cmd.ExecuteReaderAsync();
 
@@ -127,11 +123,11 @@ namespace RinhaDeBackend.Services
             {
                 var p = new Pessoa
                 {
-                    Id = reader.GetGuid(0),         // Assuming Id is in the first column (index 0)
-                    Apelido = reader.GetString(1),   // Assuming Apelido is in the third column (index 2)
-                    Nome = reader.GetString(2),      // Assuming Nome is in the second column (index 1)
-                    Nascimento = DateOnly.FromDateTime(reader.GetDateTime(3)), // Assuming Nascimento is in the fourth column (index 3)
-                    Stack = reader.GetString(4).Split(',').Select(element => element.Trim())      // Assuming Stack is in the fifth column (index 4)
+                    Id = reader.GetGuid(0),
+                    Apelido = reader.GetString(1),
+                    Nome = reader.GetString(2),
+                    Nascimento = DateOnly.FromDateTime(reader.GetDateTime(3)),
+                    Stack = reader.GetString(4).Split(',').Select(element => element.Trim())
                 };
 
                 pessoas.Add(p);

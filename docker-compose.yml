@@ -3,7 +3,7 @@ services:
   db:
     image: postgres:latest
     hostname: db
-    command: 'postgres -c max_connections=200 -c shared_buffers=256MB -c fsync=off -c full_page_writes=off'
+    command: 'postgres -c shared_buffers=256MB -c fsync=off -c full_page_writes=off -c max_connections=450'
     environment:
       - POSTGRES_PASSWORD=123
       - POSTGRES_USER=admin
@@ -59,6 +59,7 @@ services:
           memory: '0.5GB'
   redis:
     image: redis:latest
+    command: redis-server --save "" --appendonly no --maxclients 20000
     hostname: redis
     ports:
       - 6379:6379

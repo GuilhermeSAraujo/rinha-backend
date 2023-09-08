@@ -20,7 +20,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 builder.Services.AddSingleton(_ => new ConcurrentDictionary<string, byte>());
-builder.Services.AddSingleton(_ => new Dictionary<Guid, Pessoa>());
+builder.Services.AddSingleton(_ => new ConcurrentDictionary<Guid, Pessoa>());
 builder.Services.AddSingleton(_ => new ConcurrentQueue<Pessoa>());
 
 builder.Services.AddScoped<IPessoaService, PessoaService>();
@@ -42,7 +42,7 @@ async (
     HttpContext http,
     IDistributedCache distributedCache,
     ConcurrentDictionary<string, byte> peopleByApelidoLocalCache,
-    Dictionary<Guid, Pessoa> peopleByIdLocalCache,
+    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
     ConcurrentQueue<Pessoa> waitingForCreation,
     IPessoaService pessoaService,
     Pessoa pessoa) =>
@@ -91,7 +91,7 @@ app.MapGet("/pessoas/{id}",
 async (
     HttpContext http,
     IDistributedCache distributedCache,
-    Dictionary<Guid, Pessoa> peopleByIdLocalCache,
+    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
     IPessoaService pessoaService,
     Guid id) =>
 {
