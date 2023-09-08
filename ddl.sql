@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS public."pessoas" (
     apelido VARCHAR(32) unique,
     nome VARCHAR(100) not null,
     nascimento DATE not null,
-    stack VARCHAR(255),
-    termo VARCHAR(255) GENERATED ALWAYS AS (apelido || nome || stack) STORED
+    stack TEXT null,
+    termo TEXT GENERATED ALWAYS AS (apelido || nome || stack) STORED
 );
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA pg_catalog;

@@ -44,14 +44,14 @@ async (
     INatsConnection natsConnection,
     Pessoa pessoa) =>
 {
-    if (Pessoa.HasInvalidBody(pessoa) || !peopleByApelidoCache.TryAdd(pessoa.Apelido, default))
+    if (!Pessoa.HasInvalidBody(pessoa))
     {
-        return UnprocessableEntity;
+        return Results.UnprocessableEntity();
     }
 
-    if (Pessoa.IsBadRequest(pessoa))
+    if (peopleByApelidoCache.TryGetValue(pessoa.Apelido, out _))
     {
-        return BadRequestEntity;
+        return Results.UnprocessableEntity();
     }
 
     pessoa.Id = Guid.NewGuid();
@@ -75,10 +75,10 @@ async (
 app.MapGet("/pessoas/{id}",
 async (
     HttpContext http,
-    ConcurrentDictionary<Guid, Pessoa> peopleByIdLocalCache,
+    ConcurrentDictionary<Guid, Pessoa> peopleByIdCache,
     Guid id) =>
 {
-    peopleByIdLocalCache.TryGetValue(id, out var personLocalCache);
+    peopleByIdCache.TryGetValue(id, out var personLocalCache);
     if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
@@ -86,7 +86,7 @@ async (
     }
     await Task.Delay(10);
 
-    peopleByIdLocalCache.TryGetValue(id, out personLocalCache);
+    peopleByIdCache.TryGetValue(id, out personLocalCache);
     if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
@@ -94,7 +94,7 @@ async (
     }
     await Task.Delay(10);
 
-    peopleByIdLocalCache.TryGetValue(id, out personLocalCache);
+    peopleByIdCache.TryGetValue(id, out personLocalCache);
     if (personLocalCache is not null)
     {
         http.Response.StatusCode = 200;
