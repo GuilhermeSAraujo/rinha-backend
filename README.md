@@ -1,3 +1,4 @@
+
 # RinhaDeBackend
 
 This project was my participation in [Rinha de Backend](https://github.com/zanfranceschi/rinha-de-backend-2023-q3). The central idea was to build the most performatic API while adhering to some rules and run a stress test to determine which one performs better.
@@ -34,3 +35,8 @@ Average inserts:
 | Redis | Pub/Sub |
 |--|--|
 | ![redis](./assets/redis-imp-succs-responses.png) | ![pub/sub](./assets/pub-sub-imp-succs-responses.png) |
+
+### Response time ranges
+| Redis | Pub/Sub |
+|--|--|
+| ![redis](./assets/redis-imp-succs-responses.png) | ![pub/sub](./assets/redis-imp-res-time-range.png) |
