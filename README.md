@@ -17,7 +17,7 @@ I made two completely different implementations:
 	- Code available on "[redis-implementation](https://github.com/GuilhermeSAraujo/rinha-backend/tree/redis-implementation)" branch.
 - Using pub/sub design pattern, with Nats server:
 	- Code available on "[pub/sub-implementation](https://github.com/GuilhermeSAraujo/rinha-backend/tree/pub/sub-implementation)" branch.
-	- 
+
 ## Comparison
 
 > Redis implementation always on the left, pub/sub on the right.
