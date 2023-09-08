@@ -34,7 +34,7 @@ Average inserts:
 
 | Redis | Pub/Sub |
 |--|--|
-| ![redis](./assets/redis-imp-succs-responses.png) | ![pub/sub](./assets/pub-sub-imp-succs-responses.png) |
+| ![redis](./assets/redis-imp-succs-responses.png) | ![pub/sub](./assets/pub-sub-imp-res-time-range.png) |
 
 ### Response time ranges
 | Redis | Pub/Sub |
